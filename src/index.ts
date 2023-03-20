@@ -124,6 +124,88 @@ const createOrdinal = async (
   return tx;
 };
 
+const createOrdinal2 = async (
+  utxo: Utxo,
+  utxo2: Utxo,
+  destinationAddress: string,
+  paymentPk: PrivateKey,
+  changeAddress: string,
+  satPerByteFee = 0.1,
+  inscription: Inscription,
+  metaData?: MAP
+): Promise<Transaction> => {
+  let tx = new Transaction(1, 0);
+
+  // Inputs
+  let utxoIn = new TxIn(
+    Buffer.from(utxo.txid, "hex"),
+    utxo.vout,
+    Script.from_asm_string("")
+  );
+  let utxoIn2 = new TxIn(
+    Buffer.from(utxo2.txid, "hex"),
+    utxo2.vout,
+    Script.from_asm_string("")
+  );
+
+  tx.add_input(utxoIn);
+  tx.add_input(utxoIn2);
+
+  // Outputs
+  const inscriptionScript = buildInscription(
+    P2PKHAddress.from_string(destinationAddress),
+    inscription.buffer,
+    inscription.contentType,
+    metaData
+  );
+
+  let satOut = new TxOut(BigInt(1), inscriptionScript);
+  tx.add_output(satOut);
+
+  // add change
+  const changeaddr = P2PKHAddress.from_string(changeAddress);
+  const changeScript = changeaddr.get_locking_script();
+  let emptyOut = new TxOut(BigInt(1), changeScript);
+  const fee = Math.ceil(
+    satPerByteFee * (tx.get_size() + emptyOut.to_bytes().byteLength)
+  );
+  const total = (utxo.satoshis + utxo2.satoshis);
+  const change = total - 1 - fee;
+  let changeOut = new TxOut(BigInt(change), changeScript);
+  tx.add_output(changeOut);
+  const sig = tx.sign(
+    paymentPk,
+    SigHash.ALL | SigHash.FORKID,
+    0,
+    Script.from_asm_string(utxo.script),
+    BigInt(utxo.satoshis)
+  );
+
+  const sig2 = tx.sign(
+    paymentPk,
+    SigHash.ALL | SigHash.FORKID,
+    0,
+    Script.from_asm_string(utxo2.script),
+    BigInt(utxo2.satoshis)
+  );
+
+  utxoIn.set_unlocking_script(
+    Script.from_asm_string(
+      `${sig.to_hex()} ${paymentPk.to_public_key().to_hex()}`
+    )
+  );
+  utxoIn2.set_unlocking_script(
+    Script.from_asm_string(
+      `${sig2.to_hex()} ${paymentPk.to_public_key().to_hex()}`
+    )
+  );
+
+  tx.set_input(0, utxoIn);
+  tx.set_input(1, utxoIn2);
+
+  return tx;
+};
+
 const sendOrdinal = async (
   paymentUtxo: Utxo,
   ordinal: Utxo,
@@ -251,4 +333,4 @@ function getPrivateKeyFromWIF(wif: string) {
   return PrivateKey.from_wif(wif);
 }
 
-export { buildInscription, createOrdinal, sendOrdinal, createOrdinalTemplate, getPrivateKeyFromWIF };
+export { buildInscription, createOrdinal, createOrdinal2, sendOrdinal, createOrdinalTemplate, getPrivateKeyFromWIF };
