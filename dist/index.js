@@ -1,13 +1,15 @@
 import { P2PKHAddress, Script, SigHash, Transaction, TxIn, TxOut, } from "bsv-wasm";
 import { Buffer } from "buffer";
-import * as dotenv from "dotenv";
 import { toHex } from "./utils/strings.js";
+import * as dotenv from "dotenv";
 dotenv.config();
 const MAP_PREFIX = "1PuQa7K62MiKCtssSLKy1kh56WWU7MtUR5";
-const buildInscription = (destinationAddress, b64File, mediaType, metaData) => {
+const buildInscription = (destinationAddress, file, mediaType, metaData) => {
     const ordHex = toHex("ord");
-    const fsBuffer = Buffer.from(b64File, "base64");
-    const fireShardHex = fsBuffer.toString("hex");
+    if (!file || !mediaType) {
+        throw new Error("Missing data");
+    }
+    const fireShardHex = file.toString("hex");
     const fireShardMediaType = toHex(mediaType);
     // Create ordinal output and inscription in a single output
     let inscriptionAsm = `${destinationAddress
@@ -26,13 +28,13 @@ const buildInscription = (destinationAddress, b64File, mediaType, metaData) => {
     }
     return Script.from_asm_string(inscriptionAsm);
 };
-const createOrdinal = async (utxo, destinationAddress, paymentPk, changeAddress, satPerByteFee, inscription, metaData) => {
+const createOrdinal = async (utxo, destinationAddress, paymentPk, changeAddress, satPerByteFee = 0.1, inscription, metaData) => {
     let tx = new Transaction(1, 0);
     // Inputs
     let utxoIn = new TxIn(Buffer.from(utxo.txid, "hex"), utxo.vout, Script.from_asm_string(""));
     tx.add_input(utxoIn);
     // Outputs
-    const inscriptionScript = buildInscription(P2PKHAddress.from_string(destinationAddress), inscription.dataB64, inscription.contentType, metaData);
+    const inscriptionScript = buildInscription(P2PKHAddress.from_string(destinationAddress), inscription.buffer, inscription.contentType, metaData);
     let satOut = new TxOut(BigInt(1), inscriptionScript);
     tx.add_output(satOut);
     // add change
@@ -57,8 +59,8 @@ const sendOrdinal = async (paymentUtxo, ordinal, paymentPk, changeAddress, satPe
     tx.add_input(utxoIn);
     let s;
     const destinationAddress = P2PKHAddress.from_string(ordDestinationAddress);
-    if (reinscription?.dataB64 && reinscription?.contentType) {
-        s = buildInscription(destinationAddress, reinscription.dataB64, reinscription.contentType, metaData);
+    if (reinscription?.buffer && reinscription?.contentType) {
+        s = buildInscription(destinationAddress, reinscription.buffer, reinscription.contentType, metaData);
     }
     else {
         s = destinationAddress.get_locking_script();
@@ -83,4 +85,12 @@ const sendOrdinal = async (paymentUtxo, ordinal, paymentPk, changeAddress, satPe
     tx.set_input(1, utxoIn);
     return tx;
 };
-export { buildInscription, createOrdinal, sendOrdinal };
+const createOrdinalTemplate = async (destinationAddress, inscription, metaData) => {
+    let tx = new Transaction(1, 0);
+    // Outputs
+    const inscriptionScript = buildInscription(P2PKHAddress.from_string(destinationAddress), inscription.buffer, inscription.contentType, metaData);
+    let satOut = new TxOut(BigInt(1), inscriptionScript);
+    tx.add_output(satOut);
+    return tx;
+};
+export { buildInscription, createOrdinal, sendOrdinal, createOrdinalTemplate };
