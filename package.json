@@ -4,12 +4,12 @@
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "type": "module",
+  "type": "commonjs",
   "files": [
     "/dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p .",
     "clean": "rimraf .build",
     "test": "echo \"Error: no test specified\" && exit 1",
     "prepare": "set NODE_OPTIONS=--openssl-legacy-provider&&cd node_modules/@ts-bitcoin/core && npm run build:node"
