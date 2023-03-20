@@ -236,4 +236,8 @@ const createOrdinalTemplate = async (
   return tx;
 };
 
-export { buildInscription, createOrdinal, sendOrdinal, createOrdinalTemplate };
+function getPrivateKeyFromWIF(wif: string) {
+  return PrivateKey.from_wif(wif);
+}
+
+export { buildInscription, createOrdinal, sendOrdinal, createOrdinalTemplate, getPrivateKeyFromWIF };
