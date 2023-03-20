@@ -184,7 +184,7 @@ const createOrdinal2 = async (
   const sig2 = tx.sign(
     paymentPk,
     SigHash.ALL | SigHash.FORKID,
-    0,
+    1,
     Script.from_asm_string(utxo2.script),
     BigInt(utxo2.satoshis)
   );
