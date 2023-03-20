@@ -9,8 +9,8 @@ import {
   TxOut,
 } from "bsv-wasm";
 import { Buffer } from "buffer";
-import * as dotenv from "dotenv";
 import { toHex } from "./utils/strings.js";
+import * as dotenv from "dotenv";
 
 dotenv.config();
 
@@ -22,7 +22,7 @@ export type Utxo = {
 };
 
 export type Inscription = {
-  dataB64: string;
+  buffer: Buffer;
   contentType: string;
 };
 
@@ -30,13 +30,15 @@ const MAP_PREFIX = "1PuQa7K62MiKCtssSLKy1kh56WWU7MtUR5";
 
 const buildInscription = (
   destinationAddress: P2PKHAddress,
-  b64File: string,
+  file: Buffer,
   mediaType: string,
   metaData?: MAP
 ): Script => {
   const ordHex = toHex("ord");
-  const fsBuffer = Buffer.from(b64File, "base64");
-  const fireShardHex = fsBuffer.toString("hex");
+  if (!file || !mediaType) {
+    throw new Error("Missing data");
+  }
+  const fireShardHex = file.toString("hex");
   const fireShardMediaType = toHex(mediaType);
 
   // Create ordinal output and inscription in a single output
@@ -67,7 +69,7 @@ const createOrdinal = async (
   destinationAddress: string,
   paymentPk: PrivateKey,
   changeAddress: string,
-  satPerByteFee: number,
+  satPerByteFee = 0.1,
   inscription: Inscription,
   metaData?: MAP
 ): Promise<Transaction> => {
@@ -85,7 +87,7 @@ const createOrdinal = async (
   // Outputs
   const inscriptionScript = buildInscription(
     P2PKHAddress.from_string(destinationAddress),
-    inscription.dataB64,
+    inscription.buffer,
     inscription.contentType,
     metaData
   );
@@ -153,10 +155,10 @@ const sendOrdinal = async (
 
   let s: Script;
   const destinationAddress = P2PKHAddress.from_string(ordDestinationAddress);
-  if (reinscription?.dataB64 && reinscription?.contentType) {
+  if (reinscription?.buffer && reinscription?.contentType) {
     s = buildInscription(
       destinationAddress,
-      reinscription.dataB64,
+      reinscription.buffer,
       reinscription.contentType,
       metaData
     );
@@ -213,4 +215,25 @@ const sendOrdinal = async (
   return tx;
 };
 
-export { buildInscription, createOrdinal, sendOrdinal };
+const createOrdinalTemplate = async (
+  destinationAddress: string,
+  inscription: Inscription,
+  metaData?: MAP
+): Promise<Transaction> => {
+  let tx = new Transaction(1, 0);
+
+  // Outputs
+  const inscriptionScript = buildInscription(
+    P2PKHAddress.from_string(destinationAddress),
+    inscription.buffer,
+    inscription.contentType,
+    metaData
+  );
+
+  let satOut = new TxOut(BigInt(1), inscriptionScript);
+  tx.add_output(satOut);
+
+  return tx;
+};
+
+export { buildInscription, createOrdinal, sendOrdinal, createOrdinalTemplate };

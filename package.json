@@ -12,7 +12,7 @@
     "build": "tsc",
     "clean": "rimraf .build",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "prepare": "SET NODE_OPTIONS=--openssl-legacy-provider&&cd node_modules/@ts-bitcoin/core && npm run build:node"
+    "prepare": "set NODE_OPTIONS=--openssl-legacy-provider&&cd node_modules/@ts-bitcoin/core && npm run build:node"
   },
   "keywords": [],
   "author": "Luke Rohenaz",
