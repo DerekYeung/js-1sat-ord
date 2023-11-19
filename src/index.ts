@@ -329,6 +329,41 @@ const createOrdinalTemplate = async (
   return tx;
 };
 
+const createOrdinalsTemplate = async (
+  destinationAddress: string,
+  inscriptions: Inscription[],
+  outputs?: any,
+  metaData?: MAP
+): Promise<Transaction> => {
+  let tx = new Transaction(1, 0);
+
+  // Outputs
+  inscriptions.forEach(inscription => {
+    const inscriptionScript = buildInscription(
+      P2PKHAddress.from_string(destinationAddress),
+      inscription.buffer,
+      inscription.contentType,
+      metaData
+    );
+
+    let satOut = new TxOut(BigInt(1), inscriptionScript);
+    tx.add_output(satOut);
+  });
+  if (outputs) {
+    outputs.forEach((output: any) => {
+      const address = output.address;
+      const satoshis = output.satoshis || 0;
+      const p2pkh = P2PKHAddress.from_string(address);
+      const script = p2pkh.get_locking_script();
+      const out = new TxOut(BigInt(satoshis), script);
+      tx.add_output(out);
+    });
+  }
+
+  return tx;
+};
+
+
 function getPrivateKeyFromWIF(wif: string) {
   return PrivateKey.from_wif(wif);
 }
