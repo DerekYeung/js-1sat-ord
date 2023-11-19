@@ -368,4 +368,4 @@ function getPrivateKeyFromWIF(wif: string) {
   return PrivateKey.from_wif(wif);
 }
 
-export { buildInscription, createOrdinal, createOrdinal2, sendOrdinal, createOrdinalTemplate, getPrivateKeyFromWIF };
+export { buildInscription, createOrdinal, createOrdinal2, sendOrdinal, createOrdinalTemplate, getPrivateKeyFromWIF, createOrdinalsTemplate };
